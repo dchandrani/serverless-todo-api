@@ -1,0 +1,79 @@
+service: aws-node-project-dhruv
+
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: us-east-1
+  lambdaHashingVersion: 20201221
+  environment:
+    TODO_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.TODO_TABLE}"
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - http:
+          path: /hello
+          method: get
+  createTodo:
+    handler: handler.createTodo
+    events:
+      - http:
+          path: /todos
+          method: post
+  getAllTodos:
+    handler: handler.getAllTodos
+    events:
+      - http:
+          path: /todos
+          method: get
+  deleteTodo:
+    handler: handler.deleteTodo
+    events:
+      - http:
+          path: /todos/{id}
+          method: delete
+  geTodoById:
+    handler: handler.getTodoById
+    events:
+      - http:
+          path: /todos/{id}
+          method: get
+  updateTodo:
+    handler: handler.updateTodo
+    events:
+      - http:
+          path: /todos/{id}
+          method: put
+
+resources:
+  Resources:
+    TodosDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.TODO_TABLE}
